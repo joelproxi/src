@@ -14,6 +14,7 @@ import { IConversation } from '../models/ConversationModel';
 import Message from '../components/Message';
 import ChatLoader from '../components/ChatLoader';
 import { IMessage } from '../models/MessageModel';
+import { Navigate } from 'react-router-dom';
 
 
 function ChatPage() {
@@ -25,10 +26,12 @@ function ChatPage() {
   const [conversations, setConversations] = useState<IConversation[]>([]);
   const [page, setPage] = useState<number>(2);
   const [hasMoreMessage, setHasMoreMessage] = useState<boolean>(false);
-  const [participients, setParticipients] = useState<string[]>([]);
   const [meTyping, setMeTyping] = useState(false);
   const timeout = useRef<any>();
   const [otherTyping, setOtherTyping] = useState(false);
+  const [onlines, setOnlines] = useState<string[]>([])
+
+ 
 
   const {sendJsonMessage} = useWebSocket( user ? `${BASE_URL_WS}/${conversationName}`: null, {
     queryParams: {token: user ? user.token: ""},
@@ -50,24 +53,34 @@ function ChatPage() {
           setMessageHistory((prev: any) => prev.concat(data.message));
           break;
         
-        // case 'user_join':
-        //   setParticipients((pcpts: string[]) => {
-        //     if (!pcpts.includes(data.user)) {
-        //       return [...pcpts, data.user];
-        //     }
-        //     return pcpts;
-        //   });
-        //   break;
+        case 'user_join':
+          console.log(onlines);
+          
+          // if(participients.includes(data.user)){
+          //   setParticipients([...participients, data.user])
+          // }else{
+          //   setParticipients(participients);
+          // }
+          setOnlines(
+            (pts: string[]) => {
+              if (!pts.includes(data.user)) {
+                return [...pts, data.user];
+              }
+              return pts;
+            }
+            
+            );
+          break;
         
         case 'user_leave':
-          setParticipients((ptcps: string[]) => {
+          setOnlines((ptcps: string[]) => {
             const newPtcps = ptcps.filter((item: string) => item !== data.user);
             return newPtcps;
           })
           break;
 
         case 'online_user_list':
-          setParticipients(data.user)
+          // setParticipients(data.user)
           break;
 
         case 'typing':
@@ -190,6 +203,10 @@ function ChatPage() {
     return `${namesAlph[0]}__${namesAlph[1]}`;
   }
 
+  if(!user){
+    return <Navigate to={'/login'} />
+  }
+
   return (
     <>
       <div className="row d-flex">
@@ -214,7 +231,7 @@ function ChatPage() {
                   <div className='row d-flex'>
                     <span className="text-sm">
                       is currently
-                      {participients?.includes(item.other_user.telephone)
+                      {onlines?.includes(item.other_user.telephone)
                         ? " online"
                         : " offline"}
                     </span>

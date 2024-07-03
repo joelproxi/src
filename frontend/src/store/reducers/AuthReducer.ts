@@ -1,8 +1,11 @@
 import { IUserModel } from '../../models/UserModel';
 import { 
     LOGIN_REQUEST, LOGIN_SUCCESS, LOGIN_FAILURE, 
-    REGISTER_REQUEST, REGISTER_SUCCESS, REGISTER_FAILURE, 
-    LOGOUT 
+    REGISTER_REQUEST, REGISTER_SUCCESS, REGISTER_FAILURE,
+    LOGOUT_REQUEST,
+    LOGOUT_SUCCESS,
+    LOGOUT_FAILURE, 
+ 
   } from '../constants/AuthConstant';
   
   // initialize userToken from local storage
@@ -25,16 +28,25 @@ const user = localStorage.getItem('user')
   const authReducer = (state = initialState, action: any): AuthState => {
     switch (action.type) {
       case LOGIN_REQUEST:
+        return { ...state, loading: true, error: null };
       case REGISTER_REQUEST:
         return { ...state, loading: true, error: null };
+      case LOGOUT_REQUEST:
+        return { ...state, loading: true, error: null };
+
       case LOGIN_SUCCESS:
+        return { ...state, loading: false, user: action.payload, error: null };
       case REGISTER_SUCCESS:
         return { ...state, loading: false, user: action.payload, error: null };
+      case LOGOUT_SUCCESS:
+        return { ...state, loading: false, user: action.payload, error: null };
+      
       case LOGIN_FAILURE:
+        return { ...state, loading: false, error: action.error };
       case REGISTER_FAILURE:
         return { ...state, loading: false, error: action.error };
-      case LOGOUT:
-        return { ...state, user: null, error: null };
+      case LOGOUT_FAILURE:
+        return { ...state, loading: false, error: action.error };
       default:
         return state;
     }

@@ -14,18 +14,21 @@ class Authservice{
         return JSON.parse(user);
     }
 
-    logout = () => {
-        localStorage.removeItem("user");
-    } 
-
     login = async (data: ILogin)  => {
         const resp = await api.post("/accounts/login/", data);
         return resp;
     }
 
-    register = async (data: IRegister): Promise<IUserModel> => {
+    logout = async ()  => {
+        const resp = await api.post("/accounts/logout/",{}, {
+            headers: {...AuthHeaders()}
+        });
+        return resp;
+    }
+
+    register = async (data: IRegister) => {
         const resp = await api.post("/accounts/register/", data);
-        return resp.data;
+        return resp;
     }
 
     getConversations = async () => {        

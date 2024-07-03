@@ -3,11 +3,13 @@ import { LOGIN_FAILURE,
     LOGIN_REQUEST, 
     LOGIN_SUCCESS, 
     LOGOUT, 
+    LOGOUT_FAILURE, 
+    LOGOUT_REQUEST, 
+    LOGOUT_SUCCESS, 
     REGISTER_FAILURE, 
     REGISTER_REQUEST, 
     REGISTER_SUCCESS } from '../constants/AuthConstant';
 import { ILogin, IRegister } from '../../models/UserModel';
-import api, { BASE_URL } from '../../services/Api';
 import AuthService from '../../services/AuthService';
 
 
@@ -26,7 +28,7 @@ export const loginAction = (data: ILogin) => {
         dispatch({ type: LOGIN_FAILURE, error: 'Login failed' });
       }
     } catch (error ) {
-      dispatch({ type: LOGIN_FAILURE, error: error?.message });
+      dispatch({ type: LOGIN_FAILURE, error: error.message });
     }
   };
 };
@@ -37,9 +39,8 @@ export const registerAction = (data: IRegister) => {
 
     try {
         console.log(data);
-        
       const response = await AuthService.register(data);
-      if (response.data.success) {
+      if (response.status === 200) {
         console.log(response.data);
         dispatch({ type: REGISTER_SUCCESS, payload: response.data });
         setItemToLocalStorage("user", response.data);
@@ -53,8 +54,19 @@ export const registerAction = (data: IRegister) => {
 };
 
 export const logoutAction = () => {
-    removeItemFromLocalstorage("user");
-  return { type: LOGOUT };
+  return async (dispatch: Dispatch) => {
+    dispatch({type: LOGOUT_REQUEST});
+    try {
+      const response = await AuthService.logout();
+      if(response.status === 200){
+        console.log(response.data);
+        dispatch({type: LOGOUT_SUCCESS, payload: response.data});
+        removeItemFromLocalstorage('user');
+      }
+    } catch (error) {
+      dispatch({type: LOGOUT_FAILURE, payload: error.message})
+    }
+  }
 };
 
 
@@ -63,8 +75,8 @@ function setItemToLocalStorage(key: string, value: any){
     localStorage.setItem(key, JSON.stringify(value));
 }
 
-function getItemFromLocalStorage(key: string): any {
-    return JSON.parse(localStorage.getItem(key));
+function getItemFromLocalStorage(key: string) {
+    return JSON.parse(localStorage.getItem(key)!);
 }
 
 function removeItemFromLocalstorage(key: string) {
