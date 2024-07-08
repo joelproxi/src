@@ -1,0 +1,5 @@
+.vscode
+.idea 
+storage/
+storage1/
+*__pycache__/

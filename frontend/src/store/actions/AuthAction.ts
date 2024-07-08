@@ -10,7 +10,7 @@ import { LOGIN_FAILURE,
     REGISTER_REQUEST, 
     REGISTER_SUCCESS } from '../constants/AuthConstant';
 import { ILogin, IRegister } from '../../models/UserModel';
-import AuthService from '../../services/AuthService';
+import AuthService from '../../services/APIService';
 
 
 

@@ -4,18 +4,24 @@ import useWebSocket from 'react-use-websocket'
 import { useSelector } from 'react-redux'
 import InfiniteScroll from 'react-infinite-scroll-component'
 import { useHotkeys } from "react-hotkeys-hook";
+import CryptoJS from 'crypto-js';
+import { saveAs } from 'file-saver';
+import { v4 as uuid4 } from 'uuid';
 
 import NavBar from '../components/NavBar';
 import { authSelectorState } from '../store/selectors/AuthSelector';
 import  {BASE_URL_WS } from '../services/Api';
 import Conversation from '../components/Conversation';
-import AuthService from '../services/AuthService';
+import AuthService from '../services/APIService';
 import { IConversation } from '../models/ConversationModel';
 import Message from '../components/Message';
 import ChatLoader from '../components/ChatLoader';
 import { IMessage } from '../models/MessageModel';
 import { Navigate } from 'react-router-dom';
+import APIService from '../services/APIService';
+import { IUserModel } from '../models/UserModel';
 
+const CHUNK_SIZE = 1024*1024; //1MB
 
 function ChatPage() {
   const initialState = {message: '' };
@@ -29,8 +35,10 @@ function ChatPage() {
   const [meTyping, setMeTyping] = useState(false);
   const timeout = useRef<any>();
   const [otherTyping, setOtherTyping] = useState(false);
+  const [ohterUser, setohterUser] = useState<IUserModel| null>(null);
   const [onlines, setOnlines] = useState<string[]>([])
-
+  const [file, setFile] = useState<File|null>(null)
+  const [uploadProgress, setUploadProgress] = useState<number>(0)
  
 
   const {sendJsonMessage} = useWebSocket( user ? `${BASE_URL_WS}/${conversationName}`: null, {
@@ -125,6 +133,7 @@ function ChatPage() {
 
   const selectUser = (conversation: IConversation) => {
     setConversationName(createConversationName(conversation.other_user.telephone));
+    setohterUser(conversation.other_user);
   }
 
   async function fetchMessages() {
@@ -203,6 +212,78 @@ function ChatPage() {
     return `${namesAlph[0]}__${namesAlph[1]}`;
   }
 
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      setFile(e.target.files[0]);
+    }
+  };
+
+  const uploadFile = async () => {
+    if (!file) return;
+    const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+    const uploadId = uuid4()
+    console.log(uploadId)
+
+    for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
+      const start = chunkIndex * CHUNK_SIZE;
+      const end = Math.min(start + CHUNK_SIZE, file.size);
+      const chunk = file.slice(start, end);
+      
+      const formData = new FormData();
+      formData.append('file', chunk);
+      formData.append('file_name', file.name);
+      formData.append('chunk_index', chunkIndex.toString());
+      formData.append('total_chunks', totalChunks.toString());
+      formData.append('conversation_name', conversationName);
+      formData.append('sender_id', user?.telephone);
+      formData.append('receiver_id', ohterUser?.telephone);
+      formData.append('upload_id', uploadId);
+      
+      try {
+        const resp = await APIService.uplaodFile(formData);
+        if(resp.status === 202){
+          setUploadProgress(((chunkIndex + 1)/ totalChunks) * 100);
+          console.log(`${((chunkIndex + 1)/ totalChunks) * 100} %`)
+        }
+        else if(resp.status === 201){
+          console.log("Transfert terminé");
+          setUploadProgress(100);
+          console.log(`100%`)
+          break;
+        }
+        else{
+          console.error('Failed to upload chunk');
+         break;
+        }
+      } catch (error) {
+        console.error('Error uploading file chunk:', error);
+      }
+    }
+   
+  };
+
+
+  const downloadFile = async (uploadId: string, fileName: string)  => {
+    console.log(uploadId)
+    try {
+      const res = await APIService.downlaodFile(uploadId);
+      const blob = new Blob([res.data], { type: 'application/octet-stream' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url
+      link.setAttribute('download', fileName)
+      link.click()
+      link.remove()
+
+      // const decryptedFileData = CryptoJS.AES.decrypt(
+      //   CryptoJS.lib.WordArray.create(res.data),'key').toString(CryptoJS.enc.Utf8);
+
+      // saveAs(blob, fileName);
+    } catch (error) {
+      console.error('Error downloading file:', error);
+    }
+  };
+
   if(!user){
     return <Navigate to={'/login'} />
   }
@@ -253,7 +334,7 @@ function ChatPage() {
               scrollableTarget="scrollableDiv"
            >
              {messageHistory?.map((message: IMessage, idx: number) => (
-                <Message key={idx} message={message} />
+                <Message key={idx} message={message} downloadFile={downloadFile} />
             ))}
            </InfiniteScroll>
 
@@ -280,9 +361,19 @@ function ChatPage() {
                : (<button type='submit' disabled className='btn btn-primary col-1 disabled'>Send</button>)} 
             </div>
           </form>
+
+          <hr />
         </div>
     </footer>
-
+      
+      <div>
+        <input type="file" onChange={handleFileUpload} />
+        {file && <button onClick={uploadFile}>Upload</button>}
+        <progress value={uploadProgress} max="100" />
+      </div>
+      <br />
+      <br />
+      <br /><br /><br />
     </>
   )
 }

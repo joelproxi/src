@@ -4,7 +4,7 @@ import AuthHeaders from "./AuthHeader";
 
 
 
-class Authservice{
+class ApiService{
     setUserToLocalStorage = (data: IUserModel) => {
         localStorage.setItem("user", JSON.stringify(data));
     }
@@ -46,6 +46,24 @@ class Authservice{
         );
         return resp;
     }
+
+    uplaodFile = async (formData: FormData) => {
+        const resp = await api.post('/chats/file/upload/', formData,
+            {
+                headers: {...AuthHeaders(), "Content-Type": "multipart/form-data"}
+            });
+           return resp;
+    }
+
+    downlaodFile = async (uploadId: string) => {
+        const resp = await api.get('/chats/file/download/',
+            {
+                headers: {...AuthHeaders()},
+                params: { 'upload_id': uploadId },
+                responseType: 'blob'
+            });
+           return resp;
+    }
 }
 
-export default new Authservice();
+export default new ApiService();
