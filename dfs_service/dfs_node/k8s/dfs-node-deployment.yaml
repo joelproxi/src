@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dfs-node
+spec:
+  kind: clusterIP
+  replicas: 4
+  selector:
+    matchLabels:
+      app: dfs-node
+  template:
+    metadata:
+      labels:
+        app: dfs-node
+    spec:
+      containers:
+      - name: dfs-node
+        image: dfs-node:latest
+        resources:
+          limits:
+            memory: "128Mi"
+            cpu: "500m"
+        ports:
+        - containerPort: 5000
+        volumeMounts:
+        - name: chunk-storage
+          mountPath: /path/to/chunk/storage
+      volumes:
+      - name: chunk-storage
+        hostPath:
+          path: storage # Use a persistent volume in production

@@ -269,12 +269,30 @@ function ChatPage() {
       const res = await APIService.downlaodFile(uploadId);
       const blob = new Blob([res.data], { type: 'application/octet-stream' });
       const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url
-      link.setAttribute('download', fileName)
-      link.click()
-      link.remove()
-
+    
+    // Detect the file type and create the appropriate element
+    const fileType = blob.type.split('/')[0];
+    let element;
+    console.log(fileType);
+    
+    if (fileType === 'video') {
+      element = document.createElement('video');
+      element.controls = true;
+    } else if (fileType === 'audio') {
+      element = document.createElement('audio');
+      element.controls = true;
+    } else {
+      element = document.createElement('a');
+      element.setAttribute('download', fileName);
+    }
+    element = document.createElement('audio');
+      element.controls = true;
+    element.src = url;
+    document.body.appendChild(element);
+    element.click();
+    element.remove();
+    console.log(element);
+    
       // const decryptedFileData = CryptoJS.AES.decrypt(
       //   CryptoJS.lib.WordArray.create(res.data),'key').toString(CryptoJS.enc.Utf8);
 

@@ -29,6 +29,7 @@ export default function Message({ message, downloadFile }: {message: IMessage, d
                             
                         <button onClick={() => downloadFile(message.file.upload_id, message.file.file_name)}>Download</button>: ''
                     }
+                    <span id="lecteur"></span>
                         </span>
                     </span>
                     <span className="ms-2" style={{ fontSize: "0.6rem", lineHeight: "1rem" }}>

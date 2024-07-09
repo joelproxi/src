@@ -1,16 +1,14 @@
 from flask import Flask, request, jsonify, Response
 import requests
 import random
+import os
 
 app = Flask(__name__)
 
 # List of DFS nodes
-DFS_NODES = [
-    'http://192.168.1.158:5001',
-    'http://192.168.1.158:5002',
-    # 'http://node3:5000'
-    # Add more nodes as needed
-]
+
+# DFS_NODES = os.getenv('DFS_NODES', 'http://dfs-node:5000').split(',')
+DFS_NODES = os.getenv('DFS_NODES', 'http://192.168.1.158:5002').split(',')
 
 
 @app.route('/store/', methods=['POST'])
