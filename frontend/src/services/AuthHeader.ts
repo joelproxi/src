@@ -12,7 +12,7 @@ const AuthHeaders = () => {
     
     const user = JSON.parse(data);
     if (user?.token) {
-        console.log(user.token);
+        // console.log(user.token);
         
         return {...headers, Authorization: `Bearer ${user.token}` };
     }

@@ -4,6 +4,7 @@ import useWebSocket from 'react-use-websocket'
 import { useSelector } from 'react-redux'
 import InfiniteScroll from 'react-infinite-scroll-component'
 import { useHotkeys } from "react-hotkeys-hook";
+import { decryptTextMessage, encryptTextMessage, parseJwt } from '../utils/utils'
 import CryptoJS from 'crypto-js';
 import { saveAs } from 'file-saver';
 import { v4 as uuid4 } from 'uuid';
@@ -30,6 +31,8 @@ function ChatPage() {
   const [messageHistory, setMessageHistory] = useState<IMessage[]>([]);
   const [conversationName, setConversationName] = useState<string>('');
   const [conversations, setConversations] = useState<IConversation[]>([]);
+  const [users, setUsers] = useState<IUserModel[]>([]);
+  const [privateKey, setPrivateKey] = useState<string>('');
   const [page, setPage] = useState<number>(2);
   const [hasMoreMessage, setHasMoreMessage] = useState<boolean>(false);
   const [meTyping, setMeTyping] = useState(false);
@@ -39,7 +42,8 @@ function ChatPage() {
   const [onlines, setOnlines] = useState<string[]>([])
   const [file, setFile] = useState<File|null>(null)
   const [uploadProgress, setUploadProgress] = useState<number>(0)
- 
+  const [sharedKey, setSharedKey] = useState<string>('')
+
 
   const {sendJsonMessage} = useWebSocket( user ? `${BASE_URL_WS}/${conversationName}`: null, {
     queryParams: {token: user ? user.token: ""},
@@ -94,6 +98,11 @@ function ChatPage() {
         case 'typing':
           updateTyping(data);
           break;
+        
+        case 'shared_key':
+          console.log(decryptTextMessage(privateKey, data.key))
+          setSharedKey(decryptTextMessage(privateKey!, data.key))
+          break;
 
         default:
           console.error("error");
@@ -119,22 +128,50 @@ function ChatPage() {
     console.log({ [name]: value});
   }
 
-  const handleOnSubmit = (event: { preventDefault: () => void; })  => {
+  const handleOnSubmit = async (event: { preventDefault: () => void; })  => {
     if (Message.length === 0) return ;
-    sendJsonMessage({
-      "type": "send_message_to_user",
-      "message": state.message
-    });
-    event.preventDefault();
-    setState(initialState);
-    clearTimeout(timeout.current);
-    timeOut();
+
+    try {
+      console.log(sharedKey)
+      const encryptedMessage = await encryptTextMessage(sharedKey!, state.message);
+      if(sharedKey){
+
+        sendJsonMessage({
+          "type": "send_message_to_user",
+          "message": encryptedMessage
+        });
+        setState(initialState);
+        clearTimeout(timeout.current);
+        timeOut();
+      }
+    } catch (error) {
+      console.error("Error encrypting message:", error);
+    }
+     
+    event.preventDefault()
   }
 
-  const selectUser = (conversation: IConversation) => {
-    setConversationName(createConversationName(conversation.other_user.telephone));
-    setohterUser(conversation.other_user);
+  const selectUser = (user: IUserModel) => {
+    console.log(user)
+    setConversationName(createConversationName(user.telephone));
+    setohterUser(user);
   }
+
+  const selectConversation = (conversation: IConversation) => {
+    setConversationName(createConversationName(conversation.other_user.telephone));
+    setohterUser(conversation.other_user)
+    console.log(conversation.other_user)
+
+  }
+
+  const handleDecryptTextMessage = (encryptedMessage: string) => {
+    try {
+      const decrypted = decryptTextMessage(privateKey!, encryptedMessage);
+      return decrypted;
+    } catch (error) {
+      console.error("Decryption failed:", error);
+    }
+  };
 
   async function fetchMessages() {
     const resp = await AuthService.getMessages(conversationName, page);
@@ -197,17 +234,32 @@ function ChatPage() {
 
 
   useEffect(() => {
+
+    const fetchUsersList = async () => {
+      const resp = await APIService.getUsers();
+      if(resp.status === 200){
+      setUsers(resp.data);
+      }
+    }
+    fetchUsersList();
+    
     const fetchConversations = async () => {
-      const resp = await AuthService.getConversations();
+      const resp = await APIService.getConversations();
       if(resp.status === 200){
         setConversations(resp.data);
+        console.log(resp.data);
+        
       }
     }
     fetchConversations();
-    
+    if(user?.token){
+      const decodeToken = parseJwt(user?.token);
+      setPrivateKey(decodeToken.private_key)
+    }
   }, [user, conversationName])
   
   function createConversationName(telephone: string) {
+    console.log(telephone)
     const namesAlph = [user?.telephone, telephone].sort();
     return `${namesAlph[0]}__${namesAlph[1]}`;
   }
@@ -275,25 +327,24 @@ function ChatPage() {
     let element;
     console.log(fileType);
     
-    if (fileType === 'video') {
-      element = document.createElement('video');
-      element.controls = true;
-    } else if (fileType === 'audio') {
-      element = document.createElement('audio');
-      element.controls = true;
-    } else {
+    // if (fileType === 'video') {
+    //   element = document.createElement('video');
+    //   element.controls = true;
+    // } else if (fileType === 'audio') {
+    //   element = document.createElement('audio');
+    //   element.controls = true;
+    // } else {
+    //   element = document.createElement('a');
+    //   element.setAttribute('download', fileName);
+    // }
       element = document.createElement('a');
-      element.setAttribute('download', fileName);
-    }
-    element = document.createElement('audio');
-      element.controls = true;
-    element.src = url;
-    document.body.appendChild(element);
-    element.click();
-    element.remove();
-    console.log(element);
-    
-      // const decryptedFileData = CryptoJS.AES.decrypt(
+      element.href = url;
+      document.body.appendChild(element);
+      element.click();
+      element.remove();
+      console.log(element);
+      
+        // const decryptedFileData = CryptoJS.AES.decrypt(
       //   CryptoJS.lib.WordArray.create(res.data),'key').toString(CryptoJS.enc.Utf8);
 
       // saveAs(blob, fileName);
@@ -303,30 +354,31 @@ function ChatPage() {
   };
 
   if(!user){
+    localStorage.removeItem('user')
     return <Navigate to={'/login'} />
   }
 
   return (
     <>
+      <NavBar />
       <div className="row d-flex">
-        {/* <div className="">
+        <div className="">
           <h4>Online users list</h4>
             {
               users?.filter((u: IUserModel) => u.telephone !== user?.telephone)
-              .map((u: any, idx: number) => {
-                return <li key={idx}  onClick={( )=> selectUser(u)}> {u.email}
+              .map((u: IUserModel, idx: number) => {
+                return <li key={idx}  onClick={( )=> selectUser(u)}> {u.full_name}
                 </li>
               })
             }
-        </div> */}
-        {/* <hr /> */}
+        </div> 
+         <hr /> 
         <div className='col-4'>
-        <NavBar />
           <h4>Conversation list</h4>
           {
             conversations?.map( 
               (item: IConversation, idx: number 
-              )=> (<div onClick={() => selectUser(item)} key={idx}>
+              )=> (<div onClick={() => selectConversation(item)} key={idx}>
                   <div className='row d-flex'>
                     <span className="text-sm">
                       is currently
@@ -352,7 +404,7 @@ function ChatPage() {
               scrollableTarget="scrollableDiv"
            >
              {messageHistory?.map((message: IMessage, idx: number) => (
-                <Message key={idx} message={message} downloadFile={downloadFile} />
+                <Message key={idx} message={message} downloadFile={downloadFile} sharedKey={sharedKey!} />
             ))}
            </InfiniteScroll>
 

@@ -54,7 +54,7 @@ const LoginPage = () => {
         <form onSubmit={handleOnSubmit}>
             <div>
                 <label htmlFor="">Email</label>
-                <input type="email"  placeholder='Email' onChange={handleOnChange} name='username'/>
+                <input type="text"  placeholder='Email' onChange={handleOnChange} name='username'/>
             </div>
 
             <div>

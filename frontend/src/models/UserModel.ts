@@ -5,9 +5,15 @@ export interface IAuth {
     token: string;
 }
 
+interface IRSAKey {
+    public_key: string;
+    private_key: string;
+}
+
 export interface IUserModel extends IAuth {
     full_name: string;
     email: string;
+    rsa_key: IRSAKey
 }
 
 export interface ILogin {
@@ -22,4 +28,10 @@ export interface IRegister {
     password2: string;
     full_name: string;
     telephone: string;
+}
+
+
+export interface IDecodedToken {
+    user: IUserModel;
+    private_key: string
 }

@@ -6,6 +6,7 @@ import RegisterPage from './pages/RegisterPage'
 
 import store from './store'
 import { ProtectedRoutes } from './routes/ProtectedRoutes'
+import ContactPage from './pages/ContactPage'
 
 
 
@@ -18,6 +19,16 @@ const App = () => {
         <Route
           path="/"
           element={ <ProtectedRoutes><ChatPage /></ProtectedRoutes> 
+          }
+        />
+        <Route
+          path="/:contact"
+          element={ <ProtectedRoutes><ChatPage /></ProtectedRoutes> 
+          }
+        />
+        <Route
+          path="/contact"
+          element={ <ProtectedRoutes><ContactPage /></ProtectedRoutes> 
           }
         />
           <Route path='login' element={<LoginPage />}  />

@@ -1,5 +1,5 @@
 import { ILogin, IRegister, IUserModel } from "../models/UserModel";
-import api from "./Api";
+import api, { axiosInstance } from "./Api";
 import AuthHeaders from "./AuthHeader";
 
 
@@ -15,7 +15,12 @@ class ApiService{
     }
 
     login = async (data: ILogin)  => {
-        const resp = await api.post("/accounts/login/", data);
+        const resp = await axiosInstance.post("/accounts/login/", data);
+        return resp;
+    }
+    
+    register = async (data: IRegister) => {
+        const resp = await axiosInstance.post("/accounts/register/", data);
         return resp;
     }
 
@@ -26,13 +31,15 @@ class ApiService{
         return resp;
     }
 
-    register = async (data: IRegister) => {
-        const resp = await api.post("/accounts/register/", data);
+    getConversations = async () => {        
+        const resp = await api.get('/chats/conversations/', {
+            headers: {...AuthHeaders()}
+        });
         return resp;
     }
 
-    getConversations = async () => {        
-        const resp = await api.get('/chats/conversations/', {
+    getUsers = async () => {        
+        const resp = await api.get('/accounts/users/', {
             headers: {...AuthHeaders()}
         });
         return resp;
