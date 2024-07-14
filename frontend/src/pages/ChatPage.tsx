@@ -4,7 +4,7 @@ import useWebSocket from 'react-use-websocket'
 import { useSelector } from 'react-redux'
 import InfiniteScroll from 'react-infinite-scroll-component'
 import { useHotkeys } from "react-hotkeys-hook";
-import { decryptTextMessage, encryptTextMessage, parseJwt } from '../utils/utils'
+import { decryptSharedKey, encryptTextMessage, parseJwt } from '../utils/utils'
 import CryptoJS from 'crypto-js';
 import { saveAs } from 'file-saver';
 import { v4 as uuid4 } from 'uuid';
@@ -100,8 +100,9 @@ function ChatPage() {
           break;
         
         case 'shared_key':
-          console.log(decryptTextMessage(privateKey, data.key))
-          setSharedKey(decryptTextMessage(privateKey!, data.key))
+          console.log('------------',typeof data.key)
+          handleDecrypt(data.key)
+          // setSharedKey(decryptTextMessage(privateKey!, data.key))
           break;
 
         default:
@@ -116,6 +117,20 @@ function ChatPage() {
       
     }
   })
+
+  async function handleDecrypt(encryptedMessage: string) {
+    if (!privateKey) {
+      console.error('Private key not available.');
+      return;
+    }
+  
+    try {
+      const decrypted = await decryptSharedKey(privateKey, encryptedMessage);
+      console.log('Decrypted Message:', decrypted);
+    } catch (error) {
+      console.error('Error decrypting message:', error);
+    }
+  }
 
 
   const handleOnChange = (e: ChangeEvent<HTMLInputElement>) => {
