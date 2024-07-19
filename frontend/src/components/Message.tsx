@@ -1,29 +1,30 @@
 import { useSelector } from 'react-redux'
 import { IMessage } from "../models/MessageModel";
 import { authSelectorState } from '../store/selectors/AuthSelector';
-import { decryptTextMessage } from '../utils/utils';
+import { decryptTextMessage } from '../utils/CrytoUtil';
+import { useEffect } from 'react';
 
 
 export function classNames(...classes: string[]) {
     return classes.filter(Boolean).join(" ");
   }
 
-export default function Message({ message, downloadFile, sharedKey }: {message: IMessage, downloadFile: any, sharedKey: string }){
+export default function Message({ message, downloadFile, sharedKey }: {message: IMessage, 
+    downloadFile: any, sharedKey: string }){
     const { user } = useSelector(authSelectorState);
-    console.log(message)
     const formatTimestamp = (timestamp: string) => {
         const date = new Date(timestamp);
         return date.toLocaleTimeString().slice(0, 4) + date.toLocaleTimeString().slice(7, 10);
     }
-
-    const handleDecryptTextMessage = (encryptedMessage: string) => {
+    useEffect(() => {
         try {
-          const decrypted = decryptTextMessage(sharedKey!, encryptedMessage);
-          return decrypted;
+            const decrypted =  decryptTextMessage(message.text_content, sharedKey! );
+            console.log(decrypted)
         } catch (error) {
           console.error("Decryption failed:", error);
         }
-      };
+    }, [])
+    
     
 
     return(
@@ -32,9 +33,10 @@ export default function Message({ message, downloadFile, sharedKey }: {message: 
             <div className={`position-relative max-w-xl rounded-lg d-flex px-2 py-1 text-gray-700 shadow ${user!.telephone === message.receiver?.telephone ? "" : "bg-secondary bg-gradient"}`}>
                 <div className="d-flex align-items-end j" >
                     <span  style={{maxWidth: "500px"}}>
-                        <span className="d-block text-black">{
+                        <span className="d-block text-black">
+                            {
                             (message.text_content && sharedKey) 
-                                ? handleDecryptTextMessage(message.text_content) 
+                                ? decryptTextMessage(message.text_content, sharedKey) 
                                 : message?.text_content}
                         </span>
                     </span>
